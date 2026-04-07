@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PinForge — Pinterest Pin & CSV Generator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f8f7f5;display:flex;height:100vh;overflow:hidden;color:#111;font-size:14px}
+a{color:#E60023}
+.sidebar{width:228px;min-width:228px;background:#fafafa;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;height:100vh}
+.logo{padding:14px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;border-radius:8px;background:#E60023;display:flex;align-items:center;justify-content:center}
+.logo-title{font-size:14px;font-weight:700}.logo-sub{font-size:11px;color:#9ca3af}
+.ap-banner{margin:8px 10px 0;padding:8px 10px;background:#fff0f1;border:1px solid #fecdd3;border-radius:8px;display:none}
+.ap-banner.show{display:block}
+.apl{font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.apn{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav{flex:1;padding:6px 0;overflow-y:auto}
+.nb{width:100%;display:flex;align-items:center;gap:8px;padding:9px 16px;background:transparent;border:none;border-left:2px solid transparent;cursor:pointer;font-size:13px;color:#6b7280;text-align:left;transition:all .12s;font-family:inherit}
+.nb:hover{background:#fff;color:#111}.nb.active{background:#fff;border-left-color:#E60023;font-weight:500;color:#111}
+.nb-icon{font-size:15px;flex-shrink:0}
+.sidebar-stats{padding:12px;border-top:1px solid #e5e7eb;background:#f9fafb;font-size:12px}
+.stat-label{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.stat-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.sv{font-weight:600;color:#E60023}
+.main{flex:1;overflow-y:auto;background:#fff}
+.tab{display:none;padding:24px;max-width:820px}.tab.active{display:block}
+h1{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-.03em}
+.sub{font-size:13px;color:#6b7280;margin-bottom:20px}
+.btn{padding:7px 14px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit;background:#fff;color:#111;transition:all .15s}
+.btn:hover{background:#f9fafb}.btn.pr{background:#E60023;color:#fff;border-color:#E60023}.btn.pr:hover{background:#c0001e}
+.btn.pr:disabled{opacity:.5;cursor:not-allowed}.btn.sm{padding:5px 10px;font-size:12px}
+.btn.danger{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+input,select,textarea{width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;color:#111;background:#fff}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#E60023;box-shadow:0 0 0 3px rgba(230,0,35,.08)}
+label{font-size:12px;color:#6b7280;display:block;margin-bottom:4px}
+textarea{resize:vertical;min-height:72px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mb{margin-bottom:12px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:12px}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+.cb{padding:14px}
+.tag-area{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;min-height:36px;cursor:text;background:#fff}
+.tag-area input{border:none;outline:none;min-width:80px;background:transparent;font-size:12px;padding:2px 4px;width:auto}
+.tag{display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:99px;padding:2px 8px;font-size:12px}
+.tx{cursor:pointer;color:#9ca3af;font-size:14px;line-height:1}
+.img-slot{width:72px;height:72px;border-radius:10px;border:1.5px dashed #d1d5db;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#f9fafb;flex-shrink:0;font-size:10px;color:#9ca3af;text-align:center;gap:2px}
+.img-slot img{width:100%;height:100%;object-fit:cover}
+.prog{height:3px;background:#f3f4f6;border-radius:99px;overflow:hidden}
+.pf{height:100%;background:#E60023;border-radius:99px;transition:width .3s}
+.alert{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px}
+.ai{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+.aw{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
+.ao{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+.ae{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+.csv-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:10px;max-height:460px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:9px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb;text-align:left;font-weight:500;white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:7px 12px;border-bottom:1px solid #f3f4f6;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td[contenteditable]:focus{background:rgba(230,0,35,.04);outline:1px solid #E60023;white-space:normal;overflow:visible;max-width:none}
+tr:hover td{background:#f9fafb}
+.proj-card{border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;overflow:hidden;cursor:pointer;transition:all .15s}
+.proj-card:hover{border-color:#fca5a5}.proj-card.act{border:2px solid #E60023;background:#fff9f9}
+.pb{display:flex;align-items:center;gap:12px;padding:12px 16px}
+.pi{width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pinfo{flex:1;min-width:0}.pname{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmeta{font-size:12px;color:#6b7280;margin-top:2px}
+.ppb{padding:0 16px 10px}.ppbar{height:4px;background:#f3f4f6;border-radius:99px;overflow:hidden}
+.ppfill{height:100%;border-radius:99px;transition:width .4s}
+.prov-pill{padding:8px 16px;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#374151;transition:all .15s}
+.prov-pill.sel{border-color:#E60023;background:#fff0f1;color:#E60023}
+.stor-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #e5e7eb;border-radius:10px;cursor:pointer;margin-bottom:8px;transition:all .15s}
+.stor-opt.sel{border-color:#E60023;background:#fff0f1}
+.acc-card{border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.ah{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.av{width:36px;height:36px;border-radius:50%;background:#E60023;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.bp{padding:10px 14px 12px;background:#f9fafb;border-top:1px solid #f3f4f6;display:none}
+.bc{display:inline-flex;align-items:center;gap:4px;margin:3px;padding:3px 10px;border:1px solid #e5e7eb;border-radius:99px;font-size:12px;background:#fff;cursor:pointer}
+.tsr{display:flex;gap:8px;align-items:center;margin-bottom:8px}.tsr input{flex:1;width:auto}
+#toast-area{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;animation:ti .2s ease;max-width:320px}
+.toast.ok{background:#059669}.toast.err{background:#dc2626}
+@keyframes ti{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.empty{text-align:center;padding:48px 0;color:#9ca3af}.ei{font-size:36px;margin-bottom:10px}
+.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:#E60023;animation:p 1s ease-in-out infinite;margin-right:4px}
+@keyframes p{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes prog{0%{width:10%}60%{width:80%}100%{width:10%}}
+.img-bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:12px}
+.img-thumb{position:relative;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;aspect-ratio:1;cursor:pointer}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-thumb .assign-badge{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:10px;padding:2px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.img-thumb .rm-img{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(220,38,38,.9);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:none}
+.board-sel{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid #e5e7eb;background:#fff;margin:3px;transition:all .12s}
+.board-sel:hover{border-color:#E60023;color:#E60023}
+.board-sel.sel{background:#E60023;color:#fff;border-color:#E60023}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg></div>
+    <div><div class="logo-title">PinForge</div><div class="logo-sub">Pinterest Generator</div></div>
+  </div>
+  <div class="ap-banner" id="apb"><div class="apl">Active project</div><div class="apn" id="apn">—</div></div>
+  <nav>
+    <button class="nb active" onclick="showTab('settings',this)"><span class="nb-icon">⚙️</span>Settings</button>
+    <button class="nb" onclick="showTab('projects',this)"><span class="nb-icon">📁</span>Projects</button>
+    <button class="nb" onclick="showTab('urls',this)"><span class="nb-icon">🔗</span>URLs</button>
+    <button class="nb" onclick="showTab('images',this)"><span class="nb-icon">🖼️</span>Images (Bulk Upload)</button>
+    <button class="nb" onclick="showTab('pins',this)"><span class="nb-icon">📌</span>Pin Generator</button>
+    <button class="nb" onclick="showTab('accounts',this)"><span class="nb-icon">👤</span>Accounts & Boards</button>
+    <button class="nb" onclick="showTab('schedule',this)"><span class="nb-icon">🗓</span>Schedule</button>
+    <button class="nb" onclick="showTab('export',this)"><span class="nb-icon">📥</span>Export CSV</button>
+  </nav>
+  <div class="sidebar-stats">
+    <div class="stat-label">This project</div>
+    <div class="stat-row"><span style="color:#6b7280">URLs</span><span class="sv" id="s-urls">0</span></div>
+    <div class="stat-row"><span style="color:#6b7280">Pins generated</span><span class="sv" id="s-pins">0</span></div>
+    <div class="stat-row"><span style="color:#6b7280">Images ready</span><span class="sv" id="s-imgs">0</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- SETTINGS -->
+<div class="tab active" id="tab-settings">
+  <h1>Settings</h1><p class="sub">Configure AI provider, timezone, and image storage. All saved in your browser.</p>
+
+  <div class="card mb">
+    <div class="ch"><span style="font-weight:500">🤖 AI Provider</span></div>
+    <div class="cb">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+        <button class="prov-pill sel" onclick="selProv('claude',this)">Claude (Anthropic)</button>
+        <button class="prov-pill" onclick="selProv('openai',this)">ChatGPT (OpenAI)</button>
+        <button class="prov-pill" onclick="selProv('grok',this)">Grok (xAI)</button>
+        <button class="prov-pill" onclick="selProv('custom',this)">Custom</button>
+      </div>
+      <div class="mb">
+        <label>API Key — <span id="klink"></span></label>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="ai-key" placeholder="sk-ant-api03-..." style="flex:1;font-family:monospace" oninput="ss('aiKey',this.value)">
+          <button class="btn sm" onclick="toggleKey()">Show</button>
+        </div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">Stored only in your browser — never shared</div>
+      </div>
+      <div class="mb">
+        <label>Model</label>
+        <select id="ai-model" onchange="ss('aiModel',this.value)">
+          <option value="claude-sonnet-4-20250514">claude-sonnet-4-20250514 (recommended)</option>
+          <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (faster)</option>
+        </select>
+      </div>
+      <div id="cu-row" style="display:none;margin-bottom:12px">
+        <label>Base URL (OpenAI-compatible)</label>
+        <input type="text" id="ai-baseurl" placeholder="https://your-api.com/v1" oninput="ss('aiBaseUrl',this.value)">
+      </div>
+      <button class="btn" onclick="testAI()" id="test-btn">⚡ Test Connection</button>
+      <span id="tres" style="font-size:12px;margin-left:10px;color:#6b7280"></span>
+    </div>
+  </div>
+
+  <div class="card mb">
+    <div class="ch"><span style="font-weight:500">🕐 Timezone</span></div>
+    <div class="cb">
+      <div class="alert ai" style="margin-bottom:12px">Pinterest schedules in the timezone you set here. Pakistan Standard Time (PKT) is UTC+5. Your schedule times will be saved correctly for Pinterest.</div>
+      <div class="r2">
+        <div>
+          <label>Your Timezone</label>
+          <select id="tz-sel" onchange="ss('timezone',this.value)">
+            <option value="Asia/Karachi">Pakistan Standard Time (PKT) UTC+5</option>
+            <option value="Asia/Dubai">Gulf Standard Time (GST) UTC+4</option>
+            <option value="Asia/Kolkata">India Standard Time (IST) UTC+5:30</option>
+            <option value="Asia/Dhaka">Bangladesh Standard Time UTC+6</option>
+            <option value="Asia/Istanbul">Turkey Time (TRT) UTC+3</option>
+            <option value="Europe/London">UK Time (GMT/BST)</option>
+            <option value="America/New_York">US Eastern Time (ET)</option>
+            <option value="America/Los_Angeles">US Pacific Time (PT)</option>
+            <option value="UTC">UTC (Universal)</option>
+          </select>
+        </div>
+        <div>
+          <label>Current time in your timezone</label>
+          <div id="tz-clock" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:monospace;background:#f9fafb">--:--:--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb">
+    <div class="ch"><span style="font-weight:500">🖼️ Image Storage (for CSV image URLs)</span></div>
+    <div class="cb">
+      <label class="stor-opt sel" id="st-none" onclick="selStor('none')"><input type="radio" name="st" checked style="width:auto;accent-color:#E60023"> None — images stay as local preview only</label>
+      <label class="stor-opt" id="st-cloudinary" onclick="selStor('cloudinary')"><input type="radio" name="st" style="width:auto;accent-color:#E60023"> Cloudinary (free, best option)</label>
+      <label class="stor-opt" id="st-imgbb" onclick="selStor('imgbb')"><input type="radio" name="st" style="width:auto;accent-color:#E60023"> ImgBB (free, instant, no account needed)</label>
+      <label class="stor-opt" id="st-s3" onclick="selStor('s3')"><input type="radio" name="st" style="width:auto;accent-color:#E60023"> Amazon S3 (advanced)</label>
+
+      <div id="cld-f" style="display:none;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;margin-top:8px">
+        <div style="font-size:12px;color:#374151;margin-bottom:10px">Free at <a href="https://cloudinary.com" target="_blank">cloudinary.com</a> → Settings → Upload → Upload presets → Add preset → set <b>Unsigned</b></div>
+        <div class="r2">
+          <div><label>Cloud Name</label><input type="text" id="cld-c" placeholder="your-cloud-name" oninput="ss('cldCloud',this.value)"></div>
+          <div><label>Upload Preset (must be Unsigned)</label><input type="text" id="cld-p" placeholder="ml_default" oninput="ss('cldPreset',this.value)"></div>
+        </div>
+      </div>
+      <div id="ibb-f" style="display:none;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;margin-top:8px">
+        <div style="font-size:12px;color:#374151;margin-bottom:10px">Free at <a href="https://api.imgbb.com" target="_blank">api.imgbb.com</a> — get free API key instantly</div>
+        <label>ImgBB API Key</label>
+        <input type="text" id="ibb-k" placeholder="your-imgbb-api-key" style="font-family:monospace" oninput="ss('imgbbKey',this.value)">
+      </div>
+      <div id="s3-f" style="display:none;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;margin-top:8px">
+        <div class="alert ae" style="margin-bottom:10px">⚠ S3 requires a public bucket with CORS enabled. Images upload directly from your browser.</div>
+        <div class="r2">
+          <div><label>Bucket Name</label><input type="text" id="s3-b" placeholder="my-pinforge-images" oninput="ss('s3Bucket',this.value)"></div>
+          <div><label>Region</label><input type="text" id="s3-r" placeholder="us-east-1" oninput="ss('s3Region',this.value)"></div>
+          <div><label>Access Key ID</label><input type="password" id="s3-ak" placeholder="AKIA..." style="font-family:monospace" oninput="ss('s3AccessKey',this.value)"></div>
+          <div><label>Secret Access Key</label><input type="password" id="s3-sk" placeholder="secret..." style="font-family:monospace" oninput="ss('s3SecretKey',this.value)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn pr" onclick="saveAllSettings()">💾 Save Settings</button>
+</div>
+
+<!-- PROJECTS -->
+<div class="tab" id="tab-projects">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+    <div><h1>Projects</h1><p class="sub">Work on multiple campaigns in parallel — saves automatically</p></div>
+    <button class="btn pr" onclick="showNPF()">+ New Project</button>
+  </div>
+  <div id="np-form" style="display:none;padding:14px;background:#fff9f9;border:1px solid #fecdd3;border-radius:10px;margin-bottom:16px">
+    <div style="display:flex;gap:8px">
+      <input type="text" id="np-name" placeholder="e.g. Summer Collection, Q3 Blog Posts..." style="flex:1" onkeydown="if(event.key==='Enter')createProj()">
+      <button class="btn pr" onclick="createProj()">Create</button>
+      <button class="btn" onclick="document.getElementById('np-form').style.display='none'">Cancel</button>
+    </div>
+  </div>
+  <div class="alert aw">💡 Create a project per campaign. Generate pins and save as draft. Upload images later when ready — everything is preserved.</div>
+  <div id="proj-list" style="margin-top:12px"></div>
+  <div class="empty" id="proj-empty"><div class="ei">📁</div><p>No projects yet</p></div>
+</div>
+
+<!-- URLS -->
+<div class="tab" id="tab-urls">
+  <h1>URLs</h1><p class="sub">Add destination URLs — AI generates a complete pin for each one</p>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="url" id="url-inp" placeholder="https://yoursite.com/page" style="flex:1" onkeydown="if(event.key==='Enter')addUrl()">
+    <button class="btn pr" onclick="addUrl()">+ Add</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <textarea id="bulk-inp" placeholder="Paste multiple URLs here, one per line..." style="flex:1;min-height:70px"></textarea>
+    <button class="btn" style="align-self:flex-end" onclick="addBulkUrls()">Add All</button>
+  </div>
+  <div id="url-list"></div>
+</div>
+
+<!-- IMAGES BULK UPLOAD -->
+<div class="tab" id="tab-images">
+  <h1>Images — Bulk Upload</h1>
+  <p class="sub">Upload all your images at once. The tool auto-assigns each image to the best matching pin using the filename.</p>
+  <div class="alert ai mb">
+    <b>How auto-assign works:</b> Name your image files to match the pin topic.<br>
+    Example: if your pin is about "Summer Fashion Ideas", name the image <b>summer-fashion.jpg</b> or <b>fashion-ideas.png</b> — the tool matches keywords automatically.<br>
+    You can also drag-assign any image to any pin manually.
+  </div>
+  <div style="border:2px dashed #e5e7eb;border-radius:12px;padding:30px;text-align:center;margin-bottom:16px;cursor:pointer;transition:all .2s" id="img-dropzone" onclick="document.getElementById('bulk-img-input').click()" ondragover="event.preventDefault();this.style.borderColor='#E60023'" ondragleave="this.style.borderColor='#e5e7eb'" ondrop="handleImgDrop(event)">
+    <div style="font-size:32px;margin-bottom:8px">📁</div>
+    <div style="font-size:14px;font-weight:500;margin-bottom:4px">Click to upload images or drag & drop here</div>
+    <div style="font-size:12px;color:#9ca3af">JPG, PNG, WEBP — upload as many as you want at once</div>
+    <input type="file" id="bulk-img-input" accept="image/*" multiple style="display:none" onchange="handleBulkImgs(this.files)">
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:500" id="img-bank-title">Uploaded images</div>
+    <button class="btn sm pr" onclick="autoAssignAll()">✨ Auto-Assign All</button>
+  </div>
+  <div id="img-bank" class="img-bank"></div>
+  <div class="empty" id="img-empty"><div class="ei">🖼️</div><p>No images uploaded yet</p></div>
+
+  <div style="margin-top:20px" id="manual-assign-section" style="display:none">
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px">Manual assignment — click an image then select which pin it belongs to</div>
+    <div id="manual-assign-list"></div>
+  </div>
+</div>
+
+<!-- PINS -->
+<div class="tab" id="tab-pins">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+    <div><h1>Pin Generator</h1><p class="sub">AI creates viral titles, SEO descriptions, and precise tags</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="copyTitles()">📋 Copy All Titles</button>
+      <button class="btn pr" id="ga-btn" onclick="genAll()">✨ Generate All</button>
+    </div>
+  </div>
+  <div id="pins-cont"></div>
+  <div class="empty" id="pins-empty"><div class="ei">📌</div><p>Add URLs first, then click Generate All</p></div>
+</div>
+
+<!-- ACCOUNTS -->
+<div class="tab" id="tab-accounts">
+  <h1>Accounts & Boards</h1><p class="sub">Manage Pinterest accounts and their boards — boards are used for auto-assignment in pins</p>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <input type="text" id="acc-inp" placeholder="Account name e.g. @mybusiness" style="flex:1" onkeydown="if(event.key==='Enter')addAcc()">
+    <button class="btn pr" onclick="addAcc()">+ Add Account</button>
+  </div>
+  <div id="acc-cont"></div>
+  <div class="empty" id="acc-empty"><div class="ei">👤</div><p>No accounts yet</p></div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="tab" id="tab-schedule">
+  <h1>Schedule</h1><p class="sub">Set your publishing times — times are in <b id="tz-label-sched">your timezone</b></p>
+  <div class="alert ai mb">Times you enter here are in YOUR timezone (set in Settings). Pinterest will publish at these exact times.</div>
+  <div class="r2 mb">
+    <div><label>Start Date</label><input type="date" id="sc-date"></div>
+    <div><label>Pins Per Day</label>
+      <select id="sc-ppd">
+        <option>1</option><option>2</option><option>3</option><option selected>5</option>
+        <option>8</option><option>10</option><option>12</option><option>15</option><option>18</option><option>20</option>
+      </select>
+    </div>
+    <div><label>Interval Between Pins</label>
+      <select id="sc-int">
+        <option value="30">30 minutes</option><option value="60" selected>1 hour</option>
+        <option value="90">1.5 hours</option><option value="120">2 hours</option>
+        <option value="180">3 hours</option><option value="240">4 hours</option>
+      </select>
+    </div>
+    <div><label>Assign to Account</label>
+      <select id="sc-acc"><option value="">— all accounts —</option></select>
+    </div>
+  </div>
+  <div style="margin-bottom:16px">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">Publishing Windows (your local time)</div>
+    <div id="tslots">
+      <div class="tsr"><input type="time" value="08:00"><span style="color:#9ca3af;font-size:13px">to</span><input type="time" value="11:00"><button class="btn sm danger" onclick="this.closest('.tsr').remove()">✕</button></div>
+      <div class="tsr"><input type="time" value="17:00"><span style="color:#9ca3af;font-size:13px">to</span><input type="time" value="20:00"><button class="btn sm danger" onclick="this.closest('.tsr').remove()">✕</button></div>
+    </div>
+    <button class="btn sm" onclick="addSlot()" style="margin-top:8px">+ Add Window</button>
+  </div>
+  <button class="btn pr" onclick="genSched()">Generate Schedule</button>
+  <div id="sched-prev" style="margin-top:16px"></div>
+</div>
+
+<!-- EXPORT -->
+<div class="tab" id="tab-export">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+    <div><h1>Export Pinterest CSV</h1><p class="sub">Click any cell to edit. Format matches Pinterest official CSV exactly.</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="buildExport()">🔄 Refresh</button>
+      <button class="btn pr" onclick="dlCSV()">⬇ Download CSV</button>
+    </div>
+  </div>
+  <div class="alert ao mb">✅ Columns: Title, Description, Link, Image URL, Board, Keywords, Publish date, Note — matches Pinterest bulk upload format exactly.</div>
+  <div id="exp-cont"></div>
+  <div class="empty" id="exp-empty"><div class="ei">📄</div><p>Generate pins first, then export here</p></div>
+</div>
+
+</div><!-- end main -->
+<div id="toast-area"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const DEF_S = {aiProvider:'claude',aiKey:'',aiModel:'claude-sonnet-4-20250514',aiBaseUrl:'',timezone:'Asia/Karachi',storProv:'none',cldCloud:'',cldPreset:'',imgbbKey:'',s3Bucket:'',s3Region:'',s3AccessKey:'',s3SecretKey:''};
+const ST = {s:Object.assign({},DEF_S), projects:[], aid:null, genIds:new Set(), schedRows:[], imgBank:[]};
+
+const PM = {
+  claude:{models:['claude-sonnet-4-20250514','claude-haiku-4-5-20251001'],link:'https://console.anthropic.com/settings/keys',lt:'Get key →',ph:'sk-ant-api03-...'},
+  openai:{models:['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-3.5-turbo'],link:'https://platform.openai.com/api-keys',lt:'Get key →',ph:'sk-...'},
+  grok:{models:['grok-2-1212','grok-beta'],link:'https://console.x.ai',lt:'Get key →',ph:'xai-...'},
+  custom:{models:[],link:'',lt:'',ph:'your-api-key'}
+};
+
+// Pinterest official CSV headers (exact match)
+const CSV_HDRS = ['Title','Description','Link','Image URL (link)','Board','Keywords','Publish date','Note'];
+
+function ga(){return ST.projects.find(p=>p.id===ST.aid)||null}
+function sv(){try{const d={s:ST.s,projects:ST.projects,aid:ST.aid,imgBank:ST.imgBank.map(i=>({...i,dataUrl:i.dataUrl}))};localStorage.setItem('pf3',JSON.stringify(d))}catch(e){console.warn('save failed',e)}}
+function ld(){
+  try{
+    const d=JSON.parse(localStorage.getItem('pf3')||'{}');
+    if(d.s)Object.assign(ST.s,d.s);
+    if(d.projects)ST.projects=d.projects;
+    if(d.aid)ST.aid=d.aid;
+    if(d.imgBank)ST.imgBank=d.imgBank;
+  }catch{}
+}
+function ss(k,v){ST.s[k]=v;sv()}
+
+// ─── Timezone clock ───────────────────────────────────────────────────────────
+function updateClock(){
+  try{
+    const now=new Date();
+    const str=now.toLocaleTimeString('en-US',{timeZone:ST.s.timezone||'Asia/Karachi',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const el=document.getElementById('tz-clock');
+    if(el)el.textContent=str;
+    const lbl=document.getElementById('tz-label-sched');
+    if(lbl)lbl.textContent=(document.getElementById('tz-sel')?.options[document.getElementById('tz-sel')?.selectedIndex]?.text||'your timezone');
+  }catch{}
+}
+setInterval(updateClock,1000);
+
+// ─── Timezone helper — convert local time to UTC ISO for Pinterest ─────────────
+function localToUTC(dateStr, timeStr){
+  // dateStr = "2025-08-15", timeStr = "08:00"
+  // We need to create the datetime as if it's in the user's timezone
+  const tz = ST.s.timezone || 'Asia/Karachi';
+  try {
+    // Create date string that looks like local time
+    const localDT = dateStr + 'T' + timeStr + ':00';
+    // Parse it and convert to UTC using the timezone
+    // We use Intl to calculate the offset
+    const dt = new Date(localDT);
+    // Get what this time looks like in the target timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+    });
+    // Calculate offset by comparing local interpretation vs target tz
+    const targetParts = formatter.formatToParts(dt);
+    const tp = {};
+    targetParts.forEach(p => { tp[p.type] = p.value; });
+    const targetDT = new Date(`${tp.year}-${tp.month}-${tp.day}T${tp.hour}:${tp.minute}:${tp.second}`);
+    const offset = dt - targetDT; // ms difference
+    const utcDT = new Date(dt.getTime() + offset);
+    // Return in Pinterest format: YYYY-MM-DD HH:MM:SS
+    return utcDT.toISOString().replace('T',' ').substring(0,19);
+  } catch(e) {
+    return dateStr + ' ' + timeStr + ':00';
+  }
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const d=document.createElement('div');
+  d.className='toast '+(type==='ok'?'ok':type==='err'?'err':'');
+  d.textContent=msg;
+  document.getElementById('toast-area').appendChild(d);
+  setTimeout(()=>d.remove(),3500);
+}
+
+// ─── Tab navigation ───────────────────────────────────────────────────────────
+function showTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='pins')renderPins();
+  if(name==='export')buildExport();
+  if(name==='projects')renderProjs();
+  if(name==='urls')renderUrls();
+  if(name==='accounts')renderAccs();
+  if(name==='images')renderImgBank();
+  if(name==='schedule')updateSchedAccounts();
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+function upStats(){
+  const p=ga();
+  document.getElementById('s-urls').textContent=p?p.urls.length:0;
+  document.getElementById('s-pins').textContent=p?p.pins.filter(x=>x.title).length:0;
+  document.getElementById('s-imgs').textContent=p?p.pins.filter(x=>x.imageUrl).length:0;
+  const b=document.getElementById('apb');
+  if(p){b.classList.add('show');document.getElementById('apn').textContent=p.name;}
+  else b.classList.remove('show');
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function selProv(p,btn){
+  ST.s.aiProvider=p;sv();
+  document.querySelectorAll('.prov-pill').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  const m=PM[p];
+  const sel=document.getElementById('ai-model');
+  sel.innerHTML=m.models.length?m.models.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">enter model name in custom URL field</option>';
+  if(m.models[0]){ST.s.aiModel=m.models[0];sel.value=m.models[0];sv();}
+  document.getElementById('ai-key').placeholder=m.ph;
+  document.getElementById('klink').innerHTML=m.link?`<a href="${m.link}" target="_blank" style="color:#E60023">${m.lt}</a>`:'';
+  document.getElementById('cu-row').style.display=p==='custom'?'block':'none';
+}
+function selStor(p){
+  ST.s.storProv=p;sv();
+  document.querySelectorAll('.stor-opt').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('st-'+p).classList.add('sel');
+  document.getElementById('cld-f').style.display=p==='cloudinary'?'block':'none';
+  document.getElementById('ibb-f').style.display=p==='imgbb'?'block':'none';
+  document.getElementById('s3-f').style.display=p==='s3'?'block':'none';
+}
+function toggleKey(){
+  const i=document.getElementById('ai-key');
+  i.type=i.type==='password'?'text':'password';
+  event.target.textContent=i.type==='password'?'Show':'Hide';
+}
+function saveAllSettings(){
+  // read all fields back
+  ST.s.aiKey=document.getElementById('ai-key').value;
+  ST.s.aiModel=document.getElementById('ai-model').value;
+  ST.s.aiBaseUrl=document.getElementById('ai-baseurl').value||'';
+  ST.s.timezone=document.getElementById('tz-sel').value;
+  ST.s.cldCloud=document.getElementById('cld-c').value||'';
+  ST.s.cldPreset=document.getElementById('cld-p').value||'';
+  ST.s.imgbbKey=document.getElementById('ibb-k').value||'';
+  ST.s.s3Bucket=document.getElementById('s3-b').value||'';
+  ST.s.s3Region=document.getElementById('s3-r').value||'';
+  ST.s.s3AccessKey=document.getElementById('s3-ak').value||'';
+  ST.s.s3SecretKey=document.getElementById('s3-sk').value||'';
+  sv();
+  toast('Settings saved!');
+}
+
+// ─── AI call ──────────────────────────────────────────────────────────────────
+async function callAI(url, existingTitle, boardList){
+  const {aiProvider:prov,aiKey:key,aiModel:model,aiBaseUrl:baseUrl}=ST.s;
+  if(!key) return {error:'No API key set. Go to Settings first.'};
+
+  const boardHint = boardList && boardList.length > 0
+    ? `Available Pinterest boards: ${boardList.join(', ')}. Choose the MOST RELEVANT one from this list.`
+    : 'Suggest the most appropriate Pinterest board name.';
+
+  const prompt = `You are a Pinterest SEO expert who knows exactly what drives saves, clicks, and viral reach on Pinterest in 2025.
+
+URL to create a pin for: ${url}
+${existingTitle ? `Previous title was: "${existingTitle}" — create a COMPLETELY DIFFERENT variation.` : ''}
+
+${boardHint}
+
+Create a high-performing Pinterest pin. Rules:
+- Title: 40-60 chars, curiosity-driven, use numbers or power words, NO generic phrases like "check out" or "click here"
+- Description: 150-300 chars, conversational, 1-2 relevant hashtags only at the very END, include a soft call to action
+- Tags: Exactly 5 tags, VERY SPECIFIC to this content (not generic like "pinterest" or "tips"), think what someone would search to find this exact pin
+- Board: Pick from the available boards list if provided, otherwise suggest one
+
+Respond ONLY with this exact JSON (no markdown, no explanation):
+{"title":"...","description":"...","tags":["tag1","tag2","tag3","tag4","tag5"],"board":"Board Name"}`;
+
+  let text = '';
+  try {
+    if(prov === 'claude'){
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({model, max_tokens:800, messages:[{role:'user',content:prompt}]})
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error?.message || 'Claude API error: ' + r.status);
+      text = d.content?.[0]?.text || '';
+    } else {
+      const ep = prov==='openai' ? 'https://api.openai.com/v1/chat/completions'
+        : prov==='grok' ? 'https://api.x.ai/v1/chat/completions'
+        : (baseUrl||'').replace(/\/$/,'') + '/chat/completions';
+      const r = await fetch(ep, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model, messages:[{role:'user',content:prompt}], max_tokens:800})
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error?.message || 'AI API error: ' + r.status);
+      text = d.choices?.[0]?.message?.content || '';
+    }
+    const clean = text.replace(/```json|```/gi,'').trim();
+    const parsed = JSON.parse(clean);
+    // Enforce max 5 tags
+    if(parsed.tags && parsed.tags.length > 5) parsed.tags = parsed.tags.slice(0,5);
+    return parsed;
+  } catch(e) {
+    return {error: e.message};
+  }
+}
+
+async function testAI(){
+  const btn=document.getElementById('test-btn'),res=document.getElementById('tres');
+  if(!ST.s.aiKey){res.textContent='Add your API key first';res.style.color='#dc2626';return;}
+  btn.textContent='Testing...';btn.disabled=true;res.textContent='';
+  const d = await callAI('https://example.com/best-fashion-tips-2025','',['Fashion','Beauty','Lifestyle']);
+  if(d.error){res.textContent='Failed: '+d.error;res.style.color='#dc2626';toast('Connection failed: '+d.error,'err');}
+  else{res.textContent='Connected! Title: "'+d.title?.substring(0,40)+'..."';res.style.color='#059669';toast('AI connection working!');}
+  btn.textContent='⚡ Test Connection';btn.disabled=false;
+}
+
+// ─── Image upload & auto-assign ───────────────────────────────────────────────
+function handleBulkImgs(files){
+  const p = ga();
+  Array.from(files).forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const entry = {id: Date.now()+Math.random(), name: file.name, dataUrl: e.target.result, assignedPinId: null, hostedUrl: ''};
+      ST.imgBank.push(entry);
+      // Auto-assign
+      if(p) autoAssignOne(entry, p);
+      sv();
+      renderImgBank();
+      upStats();
+    };
+    reader.readAsDataURL(file);
+  });
+  toast(files.length + ' image(s) added to bank');
+  // Upload to cloud in background
+  Array.from(files).forEach(f => uploadImgToCloud(f));
+}
+
+function handleImgDrop(e){
+  e.preventDefault();
+  document.getElementById('img-dropzone').style.borderColor='#e5e7eb';
+  const files = e.dataTransfer.files;
+  if(files.length) handleBulkImgs(files);
+}
+
+// Score how well an image name matches a pin
+function matchScore(imgName, pin){
+  const name = imgName.toLowerCase().replace(/[-_\.]/g,' ').replace(/\.(jpg|jpeg|png|webp|gif)$/,'');
+  const words = name.split(' ').filter(w=>w.length>2);
+  const target = ((pin.title||'')+(pin.description||'')+(pin.link||'')).toLowerCase();
+  let score = 0;
+  words.forEach(w=>{ if(target.includes(w)) score++; });
+  return score;
+}
+
+function autoAssignOne(imgEntry, proj){
+  if(!proj||!proj.pins.length) return;
+  let best = null, bestScore = -1;
+  proj.pins.forEach(pin=>{
+    const sc = matchScore(imgEntry.name, pin);
+    if(sc > bestScore){bestScore=sc;best=pin;}
+  });
+  // Only auto-assign if there is at least a minimal match (score>0), or assign sequentially
+  if(best){
+    imgEntry.assignedPinId = best.urlId;
+    // Set imageUrl on the pin
+    if(imgEntry.hostedUrl) best.imageUrl = imgEntry.hostedUrl;
+    else best.imageUrl = imgEntry.dataUrl;
+  }
+}
+
+function autoAssignAll(){
+  const p = ga();
+  if(!p){toast('Select a project first','err');return;}
+  ST.imgBank.forEach(img=>autoAssignOne(img,p));
+  // Apply hosted URLs where available
+  ST.imgBank.forEach(img=>{
+    if(img.assignedPinId){
+      const pin = p.pins.find(x=>x.urlId===img.assignedPinId);
+      if(pin) pin.imageUrl = img.hostedUrl || img.dataUrl;
+    }
+  });
+  sv();renderImgBank();upStats();
+  toast('Auto-assigned '+ST.imgBank.filter(i=>i.assignedPinId).length+' images');
+}
+
+function assignImgToPin(imgId, pinUrlId){
+  const p = ga();
+  const img = ST.imgBank.find(x=>x.id===imgId);
+  if(!img||!p) return;
+  img.assignedPinId = pinUrlId;
+  const pin = p.pins.find(x=>x.urlId===pinUrlId);
+  if(pin) pin.imageUrl = img.hostedUrl || img.dataUrl;
+  sv();renderImgBank();upStats();
+}
+
+function removeFromBank(imgId){
+  ST.imgBank = ST.imgBank.filter(x=>x.id!==imgId);
+  sv();renderImgBank();
+}
+
+async function uploadImgToCloud(file){
+  const {storProv:sp,cldCloud:cc,cldPreset:cp,imgbbKey:ik}=ST.s;
+  if(sp==='none') return null;
+  try{
+    if(sp==='cloudinary'&&cc&&cp){
+      const fd=new FormData();fd.append('file',file);fd.append('upload_preset',cp);
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cc}/image/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      if(d.secure_url){
+        // Update bank entry
+        const entry = ST.imgBank.find(x=>x.name===file.name);
+        if(entry){entry.hostedUrl=d.secure_url;sv();}
+        return d.secure_url;
+      }
+    } else if(sp==='imgbb'&&ik){
+      const buf=await file.arrayBuffer();
+      const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const fd=new FormData();fd.append('image',b64);
+      const r=await fetch(`https://api.imgbb.com/1/upload?key=${ik}`,{method:'POST',body:fd});
+      const d=await r.json();
+      if(d.success){
+        const entry = ST.imgBank.find(x=>x.name===file.name);
+        if(entry){entry.hostedUrl=d.data.url;sv();}
+        return d.data.url;
+      }
+    }
+  }catch(e){console.warn('cloud upload failed',e);}
+  return null;
+}
+
+function renderImgBank(){
+  const bank = document.getElementById('img-bank');
+  const empty = document.getElementById('img-empty');
+  if(!ST.imgBank.length){bank.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const p = ga();
+  bank.innerHTML = ST.imgBank.map(img=>{
+    const assignedPin = p ? p.pins.find(x=>x.urlId===img.assignedPinId) : null;
+    const assignedTitle = assignedPin ? (assignedPin.title||assignedPin.link||'Assigned').substring(0,25) : 'Unassigned';
+    const color = assignedPin ? '#059669' : '#9ca3af';
+    return `<div class="img-thumb">
+      <img src="${img.dataUrl}" alt="${img.name}">
+      <div class="assign-badge" style="background:${assignedPin?'rgba(5,150,105,.85)':'rgba(0,0,0,.65)'}">${assignedTitle}</div>
+      <button class="rm-img" onclick="removeFromBank(${img.id})">✕</button>
+    </div>`;
+  }).join('');
+
+  // Also render manual assignment section
+  if(p && p.pins.length){
+    document.getElementById('manual-assign-section').style.display='block';
+    document.getElementById('manual-assign-list').innerHTML = ST.imgBank.map(img=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6">
+        <img src="${img.dataUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${img.name}</div>
+          ${img.hostedUrl?'<div style="font-size:11px;color:#059669">✓ Uploaded to cloud</div>':'<div style="font-size:11px;color:#9ca3af">Local only</div>'}
+        </div>
+        <select style="width:auto;font-size:12px;padding:4px 8px" onchange="assignImgToPin(${img.id},parseFloat(this.value))">
+          <option value="">— assign to pin —</option>
+          ${p.pins.map(pin=>`<option value="${pin.urlId}" ${img.assignedPinId===pin.urlId?'selected':''}>${(pin.title||pin.link||'').substring(0,40)}</option>`).join('')}
+        </select>
+      </div>`).join('');
+  }
+}
+
+// ─── Projects ─────────────────────────────────────────────────────────────────
+function newProj(name){
+  return{id:Date.now().toString(),name,status:'draft',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),urls:[],pins:[],accounts:[],timeSlots:[{from:'08:00',to:'11:00'},{from:'17:00',to:'20:00'}],scheduleRows:[],notes:''};
+}
+function showNPF(){const f=document.getElementById('np-form');f.style.display=f.style.display==='none'?'flex':'none';if(f.style.display==='flex')document.getElementById('np-name').focus();}
+function createProj(){
+  const name=document.getElementById('np-name').value.trim()||'Project '+(ST.projects.length+1);
+  const p=newProj(name);ST.projects.push(p);ST.aid=p.id;sv();
+  document.getElementById('np-name').value='';
+  document.getElementById('np-form').style.display='none';
+  toast('Project "'+name+'" created');renderProjs();upStats();
+}
+function renderProjs(){
+  const list=document.getElementById('proj-list'),empty=document.getElementById('proj-empty');
+  if(!ST.projects.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=ST.projects.map(p=>{
+    const pins=p.pins.filter(x=>x.title).length,imgs=p.pins.filter(x=>x.imageUrl).length;
+    const pct=pins>0?Math.round(imgs/pins*100):0,isAct=p.id===ST.aid;
+    return`<div class="proj-card ${isAct?'act':''}" onclick="selProj('${p.id}')">
+      <div class="pb">
+        <div class="pi">${p.status==='exported'?'✅':p.status==='ready'?'🚀':p.status==='images_pending'?'🖼️':'📝'}</div>
+        <div class="pinfo">
+          <div class="pname">${p.name}${isAct?' <span style="font-size:11px;background:#E60023;color:#fff;padding:1px 7px;border-radius:99px;margin-left:6px">Active</span>':''}</div>
+          <div class="pmeta">${p.urls.length} URLs · ${pins} pins${pins>0&&imgs<pins?' · <span style="color:#d97706">⚠ '+(pins-imgs)+' images missing</span>':pins>0&&imgs===pins?' · <span style="color:#059669">✓ All images ready</span>':''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+          <select onchange="chgSt('${p.id}',this.value)" style="font-size:11px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;width:auto">
+            <option value="draft" ${p.status==='draft'?'selected':''}>Draft</option>
+            <option value="images_pending" ${p.status==='images_pending'?'selected':''}>Awaiting Images</option>
+            <option value="ready" ${p.status==='ready'?'selected':''}>Ready</option>
+            <option value="exported" ${p.status==='exported'?'selected':''}>Exported</option>
+          </select>
+          <button class="btn sm danger" onclick="delProj('${p.id}')">✕</button>
+        </div>
+      </div>
+      ${pins>0?`<div class="ppb"><div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-bottom:3px"><span>Images</span><span>${imgs}/${pins}</span></div><div class="ppbar"><div class="ppfill" style="width:${pct}%;background:${pct===100?'#059669':'#E60023'}"></div></div></div>`:''}
+    </div>`;
+  }).join('');
+}
+function selProj(id){ST.aid=id;sv();renderProjs();upStats();toast('Project "'+ST.projects.find(p=>p.id===id)?.name+'" selected');}
+function chgSt(id,s){const p=ST.projects.find(x=>x.id===id);if(p){p.status=s;sv();renderProjs();}}
+function delProj(id){if(!confirm('Delete this project?'))return;ST.projects=ST.projects.filter(p=>p.id!==id);if(ST.aid===id)ST.aid=ST.projects[0]?.id||null;sv();renderProjs();upStats();toast('Deleted');}
+
+// ─── URLs ─────────────────────────────────────────────────────────────────────
+function addUrl(){
+  const inp=document.getElementById('url-inp'),url=inp.value.trim();
+  if(!url.startsWith('http')){toast('Enter a valid URL starting with http','err');return;}
+  const p=ga();if(!p){toast('Select a project first in the Projects tab','err');return;}
+  if(p.urls.find(u=>u.url===url)){toast('URL already added','err');return;}
+  const e={id:Date.now()+Math.random(),url};
+  p.urls.push(e);p.pins.push({urlId:e.id,title:'',description:'',tags:[],imageUrl:'',board:'',scheduledTime:'',link:url});
+  inp.value='';sv();renderUrls();upStats();toast('URL added');
+}
+function addBulkUrls(){
+  const lines=document.getElementById('bulk-inp').value.split('\n').map(l=>l.trim()).filter(l=>l.startsWith('http'));
+  const p=ga();if(!p){toast('Select a project first','err');return;}
+  let n=0;
+  lines.forEach(url=>{
+    if(!p.urls.find(u=>u.url===url)){
+      const e={id:Date.now()+Math.random(),url};
+      p.urls.push(e);p.pins.push({urlId:e.id,title:'',description:'',tags:[],imageUrl:'',board:'',scheduledTime:'',link:url});n++;
+    }
+  });
+  document.getElementById('bulk-inp').value='';sv();renderUrls();renderPins();upStats();toast(n+' URLs added');
+}
+function rmUrl(id){const p=ga();if(!p)return;p.urls=p.urls.filter(u=>u.id!==id);p.pins=p.pins.filter(x=>x.urlId!==id);sv();renderUrls();renderPins();upStats();}
+function renderUrls(){
+  const p=ga(),c=document.getElementById('url-list');
+  if(!p||!p.urls.length){c.innerHTML='<div class="empty"><div class="ei">🔗</div><p>No URLs yet</p></div>';return;}
+  c.innerHTML='<div class="card"><div>'+p.urls.map((u,i)=>{
+    const pin=p.pins.find(x=>x.urlId===u.id);
+    return`<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid #f3f4f6">
+      <span style="font-size:12px;color:#9ca3af;width:22px;flex-shrink:0">${i+1}</span>
+      <span style="flex:1;font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${u.url}">${u.url}</span>
+      ${pin?.title?'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#d1fae5;color:#065f46;flex-shrink:0">✓ Pin done</span>':''}
+      ${pin?.imageUrl?'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#eff6ff;color:#1e40af;flex-shrink:0">🖼 Image</span>':''}
+      <button class="btn sm danger" onclick="rmUrl(${u.id})">✕</button>
+    </div>`;
+  }).join('')+'</div></div>';
+}
+
+// ─── Pins ─────────────────────────────────────────────────────────────────────
+function updPin(urlId,updates){const p=ga();if(!p)return;const pin=p.pins.find(x=>x.urlId===urlId);if(!pin)return;Object.assign(pin,updates);sv();}
+
+function getBoardList(){
+  const p=ga();if(!p)return[];
+  const boards=new Set();
+  p.accounts.forEach(a=>a.boards.forEach(b=>boards.add(b)));
+  return Array.from(boards);
+}
+
+async function genPin(urlId, isVar=false){
+  const p=ga();if(!p)return;
+  const ue=p.urls.find(u=>u.id===urlId);if(!ue)return;
+  const pin=p.pins.find(x=>x.urlId===urlId);
+  ST.genIds.add(urlId);renderPins();
+  const boards=getBoardList();
+  const d=await callAI(ue.url, isVar?pin?.title:'', boards);
+  if(d.error){
+    toast('AI error: '+d.error,'err');
+    // Local fallback
+    const kw=(ue.url.split('/').filter(Boolean).pop()||'content').replace(/[-_]/g,' ').replace(/\.\w+$/,'').replace(/\b\w/g,c=>c.toUpperCase());
+    const fb={title:`${kw} — Top Ideas for 2025`,description:`Discover the best ${kw} strategies that actually work. Save this pin to come back later! #${kw.replace(/\s/g,'')} #2025`,tags:[kw.toLowerCase().split(' ')[0],kw.toLowerCase().split(' ').slice(-1)[0],'ideas2025','trending','savethis'],board:boards[0]||'My Board'};
+    updPin(urlId,fb);
+  } else {
+    updPin(urlId,{title:d.title,description:d.description,tags:d.tags.slice(0,5),board:pin?.board||d.board});
+  }
+  ST.genIds.delete(urlId);sv();renderPins();renderUrls();upStats();
+}
+
+async function genAll(){
+  const p=ga();
+  if(!p||!p.urls.length){toast('Add URLs first','err');return;}
+  if(!ST.s.aiKey){toast('Add your AI key in Settings first','err');return;}
+  toast('Generating all pins...');
+  for(const u of p.urls) await genPin(u.id);
+  toast('All pins generated!');
+}
+
+function copyTitles(){
+  const p=ga();if(!p)return;
+  const t=p.pins.filter(x=>x.title).map(x=>x.title);
+  if(!t.length){toast('No titles yet','err');return;}
+  navigator.clipboard.writeText(t.join('\n')).then(()=>toast(t.length+' titles copied!'));
+}
+
+function rmTag(uid,tag){const p=ga();if(!p)return;const pin=p.pins.find(x=>x.urlId===uid);if(!pin)return;pin.tags=pin.tags.filter(t=>t!==tag);sv();renderPins();}
+
+function renderPins(){
+  const p=ga(),c=document.getElementById('pins-cont'),empty=document.getElementById('pins-empty');
+  if(!p||!p.urls.length){c.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const boards=getBoardList();
+  c.innerHTML=p.urls.map(u=>{
+    const pin=p.pins.find(x=>x.urlId===u.id)||{title:'',description:'',tags:[],imageUrl:'',board:'',scheduledTime:''};
+    const isG=ST.genIds.has(u.id);
+    const tagCount=pin.tags?pin.tags.length:0;
+    return`<div class="card">
+      <div class="ch">
+        <span style="font-size:12px;color:#6b7280;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.url}</span>
+        <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+          <button class="btn pr sm" onclick="genPin(${u.id})" ${isG?'disabled':''}>${isG?'<span class="pulse"></span>Generating...':'✨ Generate'}</button>
+          ${pin.title?`<button class="btn sm" onclick="genPin(${u.id},true)" ${isG?'disabled':''}>🔄 Variation</button>`:''}
+        </div>
+      </div>
+      ${isG?'<div class="prog" style="margin:0;border-radius:0"><div class="pf" style="width:70%;animation:prog 2s ease infinite"></div></div>':''}
+      <div class="cb">
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div class="img-slot" onclick="document.getElementById('fi-${u.id}').click()" title="Click to upload image">
+            ${pin.imageUrl?`<img src="${pin.imageUrl}" alt="">`:'📷<br>Upload'}
+          </div>
+          <input type="file" id="fi-${u.id}" accept="image/*" style="display:none" onchange="quickUploadPin(${u.id},this.files[0])">
+          <div style="flex:1">
+            <label>Pin Title <span style="color:#9ca3af">${pin.title.length}/100 chars</span></label>
+            <textarea maxlength="100" rows="2" oninput="updPin(${u.id},{title:this.value})" style="min-height:52px">${pin.title}</textarea>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>SEO Description <span style="color:#9ca3af">${pin.description.length}/500 chars</span></label>
+          <textarea maxlength="500" rows="3" oninput="updPin(${u.id},{description:this.value})">${pin.description}</textarea>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>Tags — max 5 tags <span style="color:${tagCount>=5?'#dc2626':'#9ca3af'}">(${tagCount}/5)</span></label>
+          <div class="tag-area" onclick="this.querySelector('input').focus()">
+            ${(pin.tags||[]).map(t=>`<span class="tag">${t}<span class="tx" onclick="rmTag(${u.id},'${t}')">×</span></span>`).join('')}
+            ${tagCount<5?`<input type="text" placeholder="add tag, press Enter..." onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();const v=this.value.trim().replace(/^#/,'');if(v){const p=ga()?.pins.find(x=>x.urlId===${u.id});if(p&&!p.tags.includes(v)&&p.tags.length<5){p.tags.push(v);sv();renderPins();}this.value=''}}">`:
+            '<span style="font-size:11px;color:#dc2626;padding:2px 6px">Max 5 tags reached</span>'}
+          </div>
+        </div>
+        <div>
+          <label>Board Assignment</label>
+          ${boards.length?`<div style="display:flex;flex-wrap:wrap;gap:0">${boards.map(b=>`<span class="board-sel ${pin.board===b?'sel':''}" onclick="updPin(${u.id},{board:'${b}'});renderPins()">${b}</span>`).join('')}</div>`:
+          '<div style="font-size:12px;color:#9ca3af;padding:8px 0">Add boards in the Accounts & Boards tab first</div>'}
+          ${pin.board?`<div style="font-size:12px;color:#059669;margin-top:4px">✓ Assigned to: <b>${pin.board}</b></div>`:'<div style="font-size:12px;color:#d97706;margin-top:4px">⚠ No board selected</div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function quickUploadPin(urlId, file){
+  if(!file) return;
+  const localUrl=URL.createObjectURL(file);
+  updPin(urlId,{imageUrl:localUrl});
+  renderPins();
+  const cloudUrl = await uploadImgToCloud(file);
+  if(cloudUrl) updPin(urlId,{imageUrl:cloudUrl});
+  upStats();
+}
+
+// ─── Accounts ─────────────────────────────────────────────────────────────────
+function addAcc(){
+  const name=document.getElementById('acc-inp').value.trim();if(!name)return;
+  const p=ga();if(!p){toast('Select a project first','err');return;}
+  p.accounts.push({id:Date.now(),name,boards:['Home Decor','Fashion','Food & Recipes','Travel','DIY & Crafts']});
+  document.getElementById('acc-inp').value='';sv();renderAccs();renderPins();toast('Account added');
+}
+function renderAccs(){
+  const p=ga(),c=document.getElementById('acc-cont'),empty=document.getElementById('acc-empty');
+  if(!p||!p.accounts.length){c.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  c.innerHTML=p.accounts.map(a=>`
+    <div class="acc-card">
+      <div class="ah">
+        <div class="av">${a.name.replace('@','').substring(0,2).toUpperCase()}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">${a.name}</div><div style="font-size:12px;color:#6b7280">${a.boards.length} boards</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm" onclick="togBoards(${a.id})">▼ Boards</button>
+          <button class="btn sm" onclick="addBoard(${a.id})">+ Board</button>
+          <button class="btn sm danger" onclick="rmAcc(${a.id})">✕</button>
+        </div>
+      </div>
+      <div class="bp" id="bp-${a.id}">
+        ${a.boards.map(b=>`<span class="bc">${b}<span class="tx" onclick="rmBoard(${a.id},'${b}')">×</span></span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function togBoards(id){const e=document.getElementById('bp-'+id);e.style.display=e.style.display==='block'?'none':'block';}
+function addBoard(id){const n=prompt('New board name:');if(n?.trim()){const p=ga(),a=p?.accounts.find(x=>x.id===id);if(a&&!a.boards.includes(n.trim())){a.boards.push(n.trim());sv();renderAccs();renderPins();}}}
+function rmBoard(id,name){const p=ga(),a=p?.accounts.find(x=>x.id===id);if(a){a.boards=a.boards.filter(b=>b!==name);sv();renderAccs();}}
+function rmAcc(id){const p=ga();if(!p)return;p.accounts=p.accounts.filter(a=>a.id!==id);sv();renderAccs();toast('Account removed');}
+
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+function addSlot(){
+  const d=document.createElement('div');d.className='tsr';
+  d.innerHTML='<input type="time" value="09:00"><span style="color:#9ca3af;font-size:13px">to</span><input type="time" value="12:00"><button class="btn sm danger" onclick="this.closest(\'.tsr\').remove()">✕</button>';
+  document.getElementById('tslots').appendChild(d);
+}
+function updateSchedAccounts(){
+  const p=ga();const sel=document.getElementById('sc-acc');
+  sel.innerHTML='<option value="">— all accounts —</option>';
+  if(p)p.accounts.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name;sel.appendChild(o);});
+}
+function genSched(){
+  const p=ga();if(!p){toast('Select a project first','err');return;}
+  const pins=p.pins.filter(x=>x.title);
+  if(!pins.length){toast('Generate pins first','err');return;}
+  const sd=document.getElementById('sc-date').value;
+  if(!sd){toast('Set a start date','err');return;}
+  const ppd=parseInt(document.getElementById('sc-ppd').value);
+  const intv=parseInt(document.getElementById('sc-int').value);
+  const tz=ST.s.timezone||'Asia/Karachi';
+  const slots=Array.from(document.querySelectorAll('.tsr')).map(r=>{
+    const ins=r.querySelectorAll('input[type=time]');
+    return{from:ins[0].value,to:ins[1].value};
+  });
+  const rows=[];let pi=0,day=0;
+  while(pi<pins.length&&day<365){
+    const dateObj=new Date(sd+'T00:00:00');dateObj.setDate(dateObj.getDate()+day);
+    const dateStr=dateObj.toISOString().split('T')[0];
+    for(let i=0;i<ppd&&pi<pins.length;i++){
+      const sl=slots[i%slots.length];
+      const [h,m]=sl.from.split(':').map(Number);
+      const totalMins = h*60 + m + Math.floor((i/slots.length)*intv);
+      const finalH = Math.floor(totalMins/60)%24;
+      const finalM = totalMins%60;
+      const timeStr=`${String(finalH).padStart(2,'0')}:${String(finalM).padStart(2,'0')}`;
+      // Convert local time to UTC for Pinterest
+      const utcStr = localToUTC(dateStr, timeStr);
+      const localDisplay = dateObj.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+timeStr;
+      rows.push({
+        date:localDisplay,
+        utc:utcStr,
+        localTime:timeStr,
+        dateStr,
+        title:pins[pi].title,
+        pinUrlId:pins[pi].urlId
+      });
+      pi++;
+    }
+    day++;
+  }
+  ST.schedRows=rows;p.scheduleRows=rows;sv();
+  const tzName=document.getElementById('tz-sel')?.options[document.getElementById('tz-sel')?.selectedIndex]?.text||tz;
+  document.getElementById('sched-prev').innerHTML=`
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">${rows.length} pins scheduled across ${day} days (Times in: ${tzName})</div>
+    <div class="csv-wrap"><table>
+      <thead><tr><th>#</th><th>Date & Local Time</th><th>UTC (for Pinterest)</th><th>Pin Title</th></tr></thead>
+      <tbody>${rows.map((r,i)=>`<tr>
+        <td style="color:#9ca3af">${i+1}</td>
+        <td style="color:#E60023;font-weight:500">${r.date}</td>
+        <td style="font-family:monospace;font-size:11px;color:#6b7280">${r.utc}</td>
+        <td>${r.title}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  toast(rows.length+' pins scheduled');
+}
+
+// ─── Export CSV ───────────────────────────────────────────────────────────────
+function buildExport(){
+  const p=ga(),empty=document.getElementById('exp-empty'),c=document.getElementById('exp-cont');
+  const pins=p?p.pins.filter(x=>x.title):[];
+  if(!pins.length){c.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  const rows=pins.map((pin,idx)=>{
+    const schedRow=p.scheduleRows?.[idx];
+    // Pinterest "Publish date" column format: YYYY-MM-DD HH:MM:SS (UTC)
+    const publishDate=schedRow?schedRow.utc:(pin.scheduledTime||'');
+    // Tags: Pinterest expects comma-separated keywords, max 20 chars each, no # symbol
+    const keywords=(pin.tags||[]).slice(0,5).join(',');
+    return{
+      'Title':pin.title,
+      'Description':pin.description,
+      'Link':pin.link,
+      'Image URL (link)':pin.imageUrl||'',
+      'Board':pin.board||'',
+      'Keywords':keywords,
+      'Publish date':publishDate,
+      'Note':''
+    };
+  });
+
+  c.innerHTML=`
+    <div class="csv-wrap">
+      <table>
+        <thead><tr><th>#</th>${CSV_HDRS.map(h=>`<th>${h}</th>`).join('')}<th></th></tr></thead>
+        <tbody>${rows.map((r,i)=>`<tr>
+          <td style="color:#9ca3af;text-align:center">${i+1}</td>
+          ${CSV_HDRS.map(h=>`<td contenteditable="true" style="cursor:text">${r[h]||''}</td>`).join('')}
+          <td><button onclick="this.closest('tr').remove()" style="border:none;background:transparent;color:#f87171;cursor:pointer;font-size:14px;padding:0 4px">✕</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div style="padding:10px 14px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#6b7280">${rows.length} pins ready · Times converted to UTC for Pinterest</span>
+      <button class="btn pr sm" onclick="dlCSV()">⬇ Download CSV</button>
+    </div>`;
+}
+
+function dlCSV(){
+  const tbl=document.querySelector('#exp-cont table');
+  if(!tbl){toast('Nothing to export — generate pins first','err');return;}
+  const rows=[CSV_HDRS.join(',')];
+  tbl.querySelectorAll('tbody tr').forEach(tr=>{
+    const cells=Array.from(tr.querySelectorAll('td[contenteditable]'));
+    rows.push(cells.map(td=>`"${(td.innerText||'').replace(/"/g,'""')}"`).join(','));
+  });
+  const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`pinterest-pins-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  toast('CSV downloaded!');
+  const p=ga();if(p){p.status='exported';sv();renderProjs();}
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init(){
+  ld();
+  // Restore UI
+  if(ST.s.aiKey) document.getElementById('ai-key').value=ST.s.aiKey;
+  if(ST.s.aiModel) document.getElementById('ai-model').value=ST.s.aiModel;
+  if(ST.s.aiBaseUrl) document.getElementById('ai-baseurl').value=ST.s.aiBaseUrl;
+  if(ST.s.cldCloud) document.getElementById('cld-c').value=ST.s.cldCloud;
+  if(ST.s.cldPreset) document.getElementById('cld-p').value=ST.s.cldPreset;
+  if(ST.s.imgbbKey) document.getElementById('ibb-k').value=ST.s.imgbbKey;
+  if(ST.s.s3Bucket) document.getElementById('s3-b').value=ST.s.s3Bucket;
+  if(ST.s.s3Region) document.getElementById('s3-r').value=ST.s.s3Region;
+  if(ST.s.s3AccessKey) document.getElementById('s3-ak').value=ST.s.s3AccessKey;
+  if(ST.s.s3SecretKey) document.getElementById('s3-sk').value=ST.s.s3SecretKey;
+
+  // Restore provider pill
+  if(ST.s.aiProvider!=='claude'){
+    const btn=Array.from(document.querySelectorAll('.prov-pill')).find(b=>b.onclick?.toString().includes(`'${ST.s.aiProvider}'`)||b.textContent.toLowerCase().includes(ST.s.aiProvider));
+    if(btn) selProv(ST.s.aiProvider,btn);
+  }
+  // Restore storage
+  if(ST.s.storProv!=='none') selStor(ST.s.storProv);
+  // Restore timezone
+  if(ST.s.timezone){const sel=document.getElementById('tz-sel');for(let o of sel.options){if(o.value===ST.s.timezone){o.selected=true;break;}}}
+
+  document.getElementById('sc-date').value=new Date().toISOString().split('T')[0];
+  upStats();renderProjs();updateClock();
+}
+init();
+</script>
+</body>
+</html>
