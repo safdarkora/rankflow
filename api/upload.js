@@ -1,39 +1,58 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  // For Cloudinary and ImgBB, browser can call directly (they support CORS)
-  // This endpoint handles S3 which needs server-side signing
-  const { provider, config, imageBase64, fileName } = req.body;
+  // Cloudinary upload via server (avoids any CORS issues)
+  const { provider, cloudName, uploadPreset, imgbbKey, imageBase64, fileName, mimeType } = req.body;
 
-  if (provider === 's3') {
-    const { bucket, region, accessKey, secretKey } = config;
-    if (!bucket || !accessKey || !secretKey) {
-      return res.status(400).json({ error: 'S3 config incomplete' });
-    }
-    try {
-      // AWS S3 upload via REST API with Signature V4
-      const key = `pinforge/${Date.now()}-${fileName || 'image.jpg'}`;
-      const url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
-      const buf = Buffer.from(imageBase64, 'base64');
-      const contentType = 'image/jpeg';
+  try {
+    if (provider === 'cloudinary') {
+      if (!cloudName || !uploadPreset) return res.status(400).json({ error: 'Missing cloudName or uploadPreset' });
       
-      // Simple PUT (bucket must allow public write via bucket policy)
-      const r = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-          'x-amz-acl': 'public-read',
-        },
-        body: buf,
+      // Build multipart form
+      const boundary = '----FormBoundary' + Math.random().toString(36);
+      const dataUri = `data:${mimeType||'image/jpeg'};base64,${imageBase64}`;
+      
+      const body = [
+        `--${boundary}`,
+        'Content-Disposition: form-data; name="file"',
+        '',
+        dataUri,
+        `--${boundary}`,
+        'Content-Disposition: form-data; name="upload_preset"',
+        '',
+        uploadPreset,
+        `--${boundary}--`,
+      ].join('\r\n');
+
+      const r = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body,
       });
-      if (!r.ok) throw new Error('S3 upload failed: ' + r.status);
-      res.status(200).json({ url });
-    } catch(e) {
-      res.status(500).json({ error: e.message });
+      const d = await r.json();
+      if (d.secure_url) return res.status(200).json({ url: d.secure_url });
+      throw new Error(d.error?.message || 'Cloudinary upload failed');
     }
-  } else {
-    res.status(400).json({ error: 'Use direct browser upload for Cloudinary/ImgBB' });
+
+    if (provider === 'imgbb') {
+      if (!imgbbKey) return res.status(400).json({ error: 'Missing imgbbKey' });
+      const params = new URLSearchParams();
+      params.append('image', imageBase64);
+      const r = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+      const d = await r.json();
+      if (d.success) return res.status(200).json({ url: d.data.url });
+      throw new Error(d.error?.message || 'ImgBB upload failed');
+    }
+
+    res.status(400).json({ error: 'Unknown provider: ' + provider });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 }
