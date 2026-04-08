@@ -1,16 +1,11 @@
-// Vercel serverless function — runs on server, no CORS issues
-// Handles Claude, OpenAI, Grok, and Custom APIs
 export default async function handler(req, res) {
-  // Allow requests from our own app
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const { provider, apiKey, model, baseUrl, prompt } = req.body;
-
   if (!apiKey) { res.status(400).json({ error: 'No API key provided' }); return; }
   if (!prompt) { res.status(400).json({ error: 'No prompt provided' }); return; }
 
@@ -34,22 +29,16 @@ export default async function handler(req, res) {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error?.message || 'Claude error ' + r.status);
       text = data.content?.[0]?.text || '';
-
     } else {
-      // OpenAI-compatible: OpenAI, Grok, Custom
       const endpoint =
         provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' :
         provider === 'grok'   ? 'https://api.x.ai/v1/chat/completions' :
         (baseUrl || '').replace(/\/$/, '') + '/chat/completions';
-
       const r = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
         body: JSON.stringify({
-          model: model || (provider === 'openai' ? 'gpt-4o-mini' : provider === 'grok' ? 'grok-2-1212' : model),
+          model: model || (provider === 'openai' ? 'gpt-4o-mini' : 'gpt-4o-mini'),
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 800,
         }),
@@ -59,15 +48,12 @@ export default async function handler(req, res) {
       text = data.choices?.[0]?.message?.content || '';
     }
 
-    // Parse JSON from response
     const clean = text.replace(/```json|```/gi, '').trim();
     let parsed;
     try { parsed = JSON.parse(clean); }
-    catch { return res.status(500).json({ error: 'AI returned invalid JSON. Raw: ' + clean.substring(0, 200) }); }
+    catch { return res.status(500).json({ error: 'AI returned invalid JSON', raw: clean.substring(0, 300) }); }
 
-    // Enforce max 5 tags
     if (parsed.tags && parsed.tags.length > 5) parsed.tags = parsed.tags.slice(0, 5);
-
     res.status(200).json(parsed);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Unknown error' });
