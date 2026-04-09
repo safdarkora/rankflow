@@ -391,7 +391,16 @@ tr:hover td{background:#f9fafb}
       <button class="btn pr" onclick="dlCSV()">⬇ Download CSV</button>
     </div>
   </div>
-  <div class="alert ao mb">Columns: Title, Description, Link, Image URL (link), Board, Keywords, Publish date, Note</div>
+  <div class="alert ao mb">✅ Exact Pinterest CSV format: Title, Description, Link, Image URL (link), Board, Keywords, Publish date, Note — Board must exactly match your Pinterest board name</div>
+  <div class="alert ai mb" style="font-size:12px">
+    <b>Pinterest CSV rules:</b><br>
+    • <b>Board</b> — must match your Pinterest board name exactly (capital letters matter). Example: "Summer Fashion" not "summer fashion"<br>
+    • <b>Image URL</b> — must be a public internet link (Cloudinary/ImgBB URL). Local file paths will not work<br>
+    • <b>Keywords</b> — space-separated words, no # symbol. Example: <code>fashion summer outfit ideas 2025</code><br>
+    • <b>Publish date</b> — format: <code>2025-08-15 08:00:00</code> or leave blank to publish immediately<br>
+    • <b>No BOM</b> — our export is BOM-free (Pinterest rejects files with BOM)
+    <div style="margin-top:8px"><button class="btn sm" onclick="dlSampleCSV()">📄 Download Pinterest Sample CSV</button> <span style="font-size:11px;color:#6b7280">Download Pinterest's exact format as reference</span></div>
+  </div>
   <div id="exp-cont"></div>
   <div class="empty" id="exp-empty"><div class="ei">📄</div><p>Generate pins first, then export here</p></div>
 </div>
@@ -1038,7 +1047,7 @@ function buildExport(){
       'Link':pin.link||'',
       'Image URL (link)':pin.imageUrl||'',
       'Board':pin.board||'',
-      'Keywords':(pin.tags||[]).slice(0,5).join(','),
+      'Keywords':(pin.tags||[]).slice(0,5).join(' '),
       'Publish date':sched?sched.publishDate:'',
       'Note':''
     };
@@ -1060,7 +1069,7 @@ function buildExport(){
         </tr>`).join('')}</tbody>
       </table></div>
       <div style="padding:10px 14px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:#6b7280">${rows.length} pins · Keywords comma-separated, no # · Dates in local time</span>
+        <span style="font-size:12px;color:#6b7280">${rows.length} pins · Keywords space-separated, no # · Board must match Pinterest exactly · No BOM</span>
         <button class="btn pr sm" onclick="dlCSV()">⬇ Download CSV</button>
       </div>
     </div>`;
@@ -1069,20 +1078,47 @@ function buildExport(){
 function dlCSV(){
   const tbody=document.getElementById('csv-tbody');
   if(!tbody){toast('Click Refresh first','err');return;}
+
+  // Build rows — header first, NO BOM (Pinterest rejects BOM)
   const rows=[CSV_HDRS.join(',')];
+
   tbody.querySelectorAll('tr').forEach(tr=>{
     const cells=Array.from(tr.querySelectorAll('td[contenteditable]'));
     if(!cells.length)return;
-    rows.push(cells.map(td=>{
-      const text=(td.innerText||td.textContent||'').replace(/\r?\n/g,' ').trim();
+    const vals=cells.map(td=>{
+      // Get clean plain text — no HTML entities, no newlines
+      let text=td.innerText||td.textContent||'';
+      text=text.replace(/\r?\n|\r/g,' ').replace(/\s+/g,' ').trim();
+      // Escape quotes and wrap in quotes
       return '"'+text.replace(/"/g,'""')+'"';
-    }).join(','));
+    });
+    rows.push(vals.join(','));
   });
-  const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pinterest-'+new Date().toISOString().split('T')[0]+'.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
-  toast('CSV downloaded!');
+
+  // Pinterest requires plain UTF-8, no BOM, Unix line endings
+  const content=rows.join('\n');
+  const blob=new Blob([content],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='pinterest-pins-'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast('CSV downloaded! — '+( rows.length-1)+' pins');
   const p=ga();if(p){p.status='exported';sv();}
+}
+
+// ─── SAMPLE CSV ───────────────────────────────────────────────
+function dlSampleCSV(){
+  const sample=[
+    'Title,Description,Link,Image URL (link),Board,Keywords,Publish date,Note',
+    '"10 Summer Fashion Ideas You Need in 2025","Discover the hottest summer fashion trends! Save this pin for your next shopping trip. #SummerFashion #Outfit2025","https://yoursite.com/summer-fashion","https://res.cloudinary.com/yourcloud/image/upload/sample.jpg","Summer Fashion","summer fashion outfit ideas 2025 trending","2025-08-15 08:00:00",""',
+    '"Easy Home Decor Tips for Small Spaces","Transform your small space with these creative home decor ideas. Simple and affordable! #HomeDecor #SmallSpace","https://yoursite.com/home-decor","https://i.ibb.co/example/home.jpg","Home Decor","home decor small space interior design ideas","2025-08-15 11:00:00",""',
+    '"Healthy Meal Prep Ideas for Busy Week","Save time and eat healthy with these easy meal prep recipes. Perfect for busy weekdays! #MealPrep #HealthyEating","https://yoursite.com/meal-prep","","Food & Recipes","meal prep healthy recipes food ideas weekly","",""'
+  ].join('\n');
+  const blob=new Blob([sample],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pinterest-sample-format.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+  toast('Sample CSV downloaded — open in Excel to see the format');
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
