@@ -391,14 +391,16 @@ tr:hover td{background:#f9fafb}
       <button class="btn pr" onclick="dlCSV()">⬇ Download CSV</button>
     </div>
   </div>
-  <div class="alert ao mb">✅ Exact Pinterest CSV format: Title, Description, Link, Image URL (link), Board, Keywords, Publish date, Note — Board must exactly match your Pinterest board name</div>
+  <div class="alert ao mb">✅ Exact Pinterest official CSV format — columns match Pinterest bulk upload exactly</div>
   <div class="alert ai mb" style="font-size:12px">
     <b>Pinterest CSV rules:</b><br>
-    • <b>Board</b> — must match your Pinterest board name exactly (capital letters matter). Example: "Summer Fashion" not "summer fashion"<br>
-    • <b>Image URL</b> — must be a public internet link (Cloudinary/ImgBB URL). Local file paths will not work<br>
-    • <b>Keywords</b> — space-separated words, no # symbol. Example: <code>fashion summer outfit ideas 2025</code><br>
-    • <b>Publish date</b> — format: <code>2025-08-15 08:00:00</code> or leave blank to publish immediately<br>
-    • <b>No BOM</b> — our export is BOM-free (Pinterest rejects files with BOM)
+    • <b>Title</b> — max 100 characters<br>
+    • <b>Media URL</b> — public URL to image (PNG/JPEG) or video (MP4). Must be a real internet URL, not a local file<br>
+    • <b>Pinterest board</b> — exact board name on Pinterest. Can include section: <code>Summer Eats/Appetizers</code><br>
+    • <b>Thumbnail</b> — leave blank for images, only needed for videos<br>
+    • <b>Description</b> — max 500 characters<br>
+    • <b>Keywords</b> — comma-separated. Example: <code>healthy, appetizers, hummus, summer</code><br>
+    • <b>Publish date</b> — format: <code>2025-08-15</code> or <code>2025-08-15T08:00:00</code> for specific time. Leave blank to publish immediately
     <div style="margin-top:8px"><button class="btn sm" onclick="dlSampleCSV()">📄 Download Pinterest Sample CSV</button> <span style="font-size:11px;color:#6b7280">Download Pinterest's exact format as reference</span></div>
   </div>
   <div id="exp-cont"></div>
@@ -430,7 +432,8 @@ const ST = {
   _newBoards: []
 };
 
-const CSV_HDRS = ['Title','Description','Link','Image URL (link)','Board','Keywords','Publish date','Note'];
+// EXACT Pinterest official CSV column names (from Pinterest bulk upload docs)
+const CSV_HDRS = ['Title','Media URL','Pinterest board','Thumbnail','Description','Link','Publish date','Keywords'];
 
 // ─── PERSIST ─────────────────────────────────────────────────
 function sv() {
@@ -1018,7 +1021,7 @@ function genSched(){
       const tot=h*60+m+Math.floor((i/slots.length)*intv);
       const fh=String(Math.floor(tot/60)%24).padStart(2,'0'),fm=String(tot%60).padStart(2,'0');
       const timeStr=`${fh}:${fm}`;
-      rows.push({date:dateStr,time:timeStr,publishDate:`${yyyy}-${mm}-${dd} ${timeStr}:00`,title:pins[pi].title,pinUrlId:pins[pi].urlId});
+      rows.push({date:dateStr,time:timeStr,publishDate:`${yyyy}-${mm}-${dd}T${timeStr}:00`,title:pins[pi].title,pinUrlId:pins[pi].urlId});
       pi++;
     }
     day++;
@@ -1041,21 +1044,23 @@ function buildExport(){
   empty.style.display='none';
   const rows=pins.map((pin,idx)=>{
     const sched=p.scheduleRows?.[idx];
+    const rawDate=sched?sched.publishDate:'';
+    const pinDate=rawDate?rawDate.replace(' ','T'):'';
     return{
-      'Title':pin.title||'',
-      'Description':pin.description||'',
-      'Link':pin.link||'',
-      'Image URL (link)':pin.imageUrl||'',
-      'Board':pin.board||'',
-      'Keywords':(pin.tags||[]).slice(0,5).join(' '),
-      'Publish date':sched?sched.publishDate:'',
-      'Note':''
+      'Title':           pin.title||'',
+      'Media URL':       pin.imageUrl||'',
+      'Pinterest board': pin.board||'',
+      'Thumbnail':       '',
+      'Description':     pin.description||'',
+      'Link':            pin.link||'',
+      'Publish date':    pinDate,
+      'Keywords':        (pin.tags||[]).slice(0,5).join(', ')
     };
   });
   const warns=[];
-  if(rows.filter(r=>!r['Board']).length) warns.push('⚠ '+rows.filter(r=>!r['Board']).length+' pin(s) have no board');
-  if(rows.filter(r=>!r['Image URL (link)']).length) warns.push('⚠ '+rows.filter(r=>!r['Image URL (link)']).length+' pin(s) have no image URL');
-  if(rows.filter(r=>!r['Publish date']).length) warns.push('ℹ '+rows.filter(r=>!r['Publish date']).length+' pin(s) have no publish date — will be saved as drafts');
+  if(rows.filter(r=>!r['Pinterest board']).length) warns.push('⚠ '+rows.filter(r=>!r['Pinterest board']).length+' pin(s) have no board — required by Pinterest');
+  if(rows.filter(r=>!r['Media URL']).length) warns.push('⚠ '+rows.filter(r=>!r['Media URL']).length+' pin(s) have no image URL — required by Pinterest');
+  if(rows.filter(r=>!r['Publish date']).length) warns.push('ℹ '+rows.filter(r=>!r['Publish date']).length+' pin(s) have no publish date — will publish immediately');
 
   c.innerHTML=`
     ${warns.length?`<div class="alert aw mb">${warns.join('<br>')}</div>`:''}
@@ -1069,7 +1074,7 @@ function buildExport(){
         </tr>`).join('')}</tbody>
       </table></div>
       <div style="padding:10px 14px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:#6b7280">${rows.length} pins · Keywords space-separated, no # · Board must match Pinterest exactly · No BOM</span>
+        <span style="font-size:12px;color:#6b7280">${rows.length} pins · Keywords: comma-separated · Pinterest board: exact board name · Publish date: 2025-08-15T08:00:00</span>
         <button class="btn pr sm" onclick="dlCSV()">⬇ Download CSV</button>
       </div>
     </div>`;
@@ -1109,11 +1114,12 @@ function dlCSV(){
 
 // ─── SAMPLE CSV ───────────────────────────────────────────────
 function dlSampleCSV(){
+  // Exact Pinterest official CSV format
   const sample=[
-    'Title,Description,Link,Image URL (link),Board,Keywords,Publish date,Note',
-    '"10 Summer Fashion Ideas You Need in 2025","Discover the hottest summer fashion trends! Save this pin for your next shopping trip. #SummerFashion #Outfit2025","https://yoursite.com/summer-fashion","https://res.cloudinary.com/yourcloud/image/upload/sample.jpg","Summer Fashion","summer fashion outfit ideas 2025 trending","2025-08-15 08:00:00",""',
-    '"Easy Home Decor Tips for Small Spaces","Transform your small space with these creative home decor ideas. Simple and affordable! #HomeDecor #SmallSpace","https://yoursite.com/home-decor","https://i.ibb.co/example/home.jpg","Home Decor","home decor small space interior design ideas","2025-08-15 11:00:00",""',
-    '"Healthy Meal Prep Ideas for Busy Week","Save time and eat healthy with these easy meal prep recipes. Perfect for busy weekdays! #MealPrep #HealthyEating","https://yoursite.com/meal-prep","","Food & Recipes","meal prep healthy recipes food ideas weekly","",""'
+    'Title,Media URL,Pinterest board,Thumbnail,Description,Link,Publish date,Keywords',
+    '"10 Summer Fashion Ideas You Need in 2025","https://res.cloudinary.com/yourcloud/image/upload/summer.jpg","Summer Fashion","","Discover the hottest summer fashion trends for 2025! Save this pin for later.","https://yoursite.com/summer-fashion","2025-08-15T08:00:00","fashion, summer, outfit, style, trending"',
+    '"Easy Home Decor Tips for Small Spaces","https://i.ibb.co/example/home.jpg","Home Decor","","Transform your small space with these creative and affordable home decor ideas!","https://yoursite.com/home-decor","2025-08-15T11:00:00","home decor, small space, interior design, diy, ideas"',
+    '"Healthy Meal Prep Ideas for Busy Week","https://res.cloudinary.com/yourcloud/image/upload/meal.jpg","Food & Recipes","","Save time and eat healthy with these easy meal prep recipes. Perfect for busy weekdays!","https://yoursite.com/meal-prep","","healthy, meal prep, recipes, food, weekly"'
   ].join('\n');
   const blob=new Blob([sample],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pinterest-sample-format.csv';
